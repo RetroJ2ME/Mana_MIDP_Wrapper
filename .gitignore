@@ -1,0 +1,7 @@
+/build/
+/dist/
+/.deps/
+/games/*jam
+/games/*jar
+/games/*sp
+/comp/translation/*.tsv
