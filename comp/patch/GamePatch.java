@@ -107,6 +107,7 @@ public final class GamePatch {
         patchOptionsPersistence(cls);
         patchSoundOptions(cls);
         patchNameSaveCodec(cls);
+        patchSaveSlotName(cls);
         patchWindowColor(cls);
         patchWholeSpriteDraw(cls);
         cls.write(file);
@@ -395,6 +396,44 @@ public final class GamePatch {
         int newDecode = cls.addMethodRef("NameInputHack", "decode", "(Lc;[I)Ljava/lang/String;");
         require("name save encoding", redirectCalls(save.code(), encode, newEncode), 1);
         require("name save decoding", redirectCalls(load.code(), decode, newDecode), 1);
+    }
+
+    // 存檔欄位會自行讀取並顯示姓名，不會經過一般讀檔的姓名解碼。
+    // 原版只認得姓名字表中的編號；改名後若含有字表外的字元，就會把我們儲存的 Unicode 編碼誤當成字表位置，造成越界、畫面卡住。
+    // 這裡讓存檔欄位也使用 NameInputHack，與一般讀檔採用相同的解碼規則。
+    private static void patchSaveSlotName(ClassFile cls) throws Exception {
+        ClassFile.Member display = cls.findMethod("a", "(Lcom/nttdocomo/ui/Graphics;II)V");
+        int gameText = cls.findFieldRef("c", "a", "Lb;");
+        int characters = cls.findFieldRef("b", "a", "Ljava/lang/String;");
+        int substring = cls.findMethodRef("java/lang/String", "substring", "(II)Ljava/lang/String;");
+        int concat = cls.findMethodRef("java/lang/String", "concat", "(Ljava/lang/String;)Ljava/lang/String;");
+        if (display == null || display.code() == null || gameText == 0 || characters == 0
+                || substring == 0 || concat == 0) {
+            throw new IOException("Seiken save-slot name display not found");
+        }
+        ClassFile.Code code = display.code();
+        // 先確認這段仍是原版的姓名查表指令，避免遊戲版本不同時改錯位置。
+        if (code.length() < 309
+                || code.opcode(288) != 0x19 || code.u1(289) != 17
+                || code.opcode(290) != 0x2A
+                || code.opcode(291) != GETFIELD || code.u2(292) != gameText
+                || code.opcode(294) != GETFIELD || code.u2(295) != characters
+                || code.opcode(297) != 0x15 || code.u1(298) != 19
+                || code.opcode(299) != 0x15 || code.u1(300) != 19
+                || code.opcode(301) != 0x04 || code.opcode(302) != 0x60
+                || code.opcode(303) != INVOKEVIRTUAL || code.u2(304) != substring
+                || code.opcode(306) != INVOKEVIRTUAL || code.u2(307) != concat) {
+            throw new IOException("Seiken save-slot name decoding changed");
+        }
+
+        // 把「從原版字表取字」改成「交給 NameInputHack 解碼」。
+        int decode = cls.addMethodRef("NameInputHack", "decodeCharacter", "(I)Ljava/lang/String;");
+        code.putByte(290, 0x15);
+        code.putByte(291, 19);
+        code.putByte(292, INVOKESTATIC);
+        code.putU2(293, decode);
+        // 剩下的位置填入  NOP，讓後面的指令與跳轉位置保持不變。
+        for (int p = 295; p <= 305; p++) code.putByte(p, 0);
     }
 
     private static void patchOptionsPersistence(ClassFile cls) throws Exception {

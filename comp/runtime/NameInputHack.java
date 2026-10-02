@@ -31,18 +31,23 @@ public final class NameInputHack {
     }
 
     public static String decode(c game, int[] values) {
-        String characters = originalCharacters();
         StringBuffer name = new StringBuffer(NAME_LENGTH);
         for (int i = 0; i < NAME_LENGTH; i++) {
-            int value = values[i];
-            if (value == EMPTY) continue;
-            if (value >= 0 && value < characters.length()) {
-                name.append(characters.charAt(value));
-            } else if ((value & 0xFFFF0000) == UNICODE_TAG) {
-                name.append((char)value);
-            }
+            name.append(decodeCharacter(values[i]));
         }
         return name.toString();
+    }
+
+    public static String decodeCharacter(int value) {
+        if (value == EMPTY) return "";
+        String characters = originalCharacters();
+        if (value >= 0 && value < characters.length()) {
+            return String.valueOf(characters.charAt(value));
+        }
+        if ((value & 0xFFFF0000) == UNICODE_TAG) {
+            return String.valueOf((char)value);
+        }
+        return "";
     }
 
     private static String originalCharacters() {
