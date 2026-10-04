@@ -2,6 +2,11 @@
 
 聖劍傳說 ～FF外傳～, DoJa to MIDP Wrapper.
 
+> [!NOTE]
+> This project **NEVER distributes precompiled JAR files**.
+>
+> Any third-party distribution of JAR files is **unauthorized** and **unaffiliated with this project**.
+
 ![](/img.webp)
 
 ## How to Use?
@@ -31,10 +36,13 @@ Run the **ant** build once, and Translation.tsv will be generated under `comp/tr
 You can safely ignore Index.tsv, its only used internally to index the translations.
 
 
-## LLM
+## Staff
 
-Coding: 5.6 Sol Web，6 Sol Codex
+**Framework**: Magstic
 
+**Coding**: 5.6 Sol Web，6 Sol Codex
+
+**Artist**: Magstic
 
 ## Test
 
